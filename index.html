@@ -512,10 +512,10 @@ details p{margin-top:.7rem;max-width:44rem}
     const urlCSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTGWWJH4nr9fUYYq2Qv2ZHIF-evhe1Y1dMlD3sok1WjezDIf49R_HYUf27FHZWyOLbboBCeqnLEN528/pub?output=csv";
 
     // Variables internas
-    let inventario = { "fresa": 100, "durazno": 100, "sandía": 100 };
+    let inventario = { "fresa": 0, "durazno": 0, "sandía": 0 };
     let carrito = { "fresa": 0, "durazno": 0, "sandía": 0 };
 
-    // 3. AGREGAR ESTILOS AUTOMÁTICAMENTE PARA EL CARRITO
+    // 3. AGREGAR ESTILOS AUTOMÁTICAMENTE PARA EL CARRITO Y NÚMEROS BLANCOS
     const estilos = document.createElement('style');
     estilos.innerHTML = `
         .z-qty-ctrl { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 15px; }
@@ -528,7 +528,7 @@ details p{margin-top:.7rem;max-width:44rem}
     `;
     document.head.appendChild(estilos);
 
-    // 4. CREAR BOTÓN FLOTANTE DE WHATSAPP
+    // 4. CREAR BOTÓN FLOTANTE DE WHATSAPP PARA EL CARRITO
     const btnFlotante = document.createElement('button');
     btnFlotante.id = 'btn-wa-flotante';
     btnFlotante.innerHTML = '🛒 Pedir por WhatsApp (<span id="z-total">0</span>)';
@@ -550,7 +550,7 @@ details p{margin-top:.7rem;max-width:44rem}
         }
     };
 
-    // 6. ENVIAR A WHATSAPP
+    // 6. ENVIAR PEDIDO DEL CARRITO A WHATSAPP
     btnFlotante.addEventListener('click', function() {
         let msg = "Hola, me gustaría realizar el siguiente pedido de Zoolo:\n\n";
         if(carrito["fresa"] > 0) msg += `- ${carrito["fresa"]} Hilo(s) sabor Fresa 🍓\n`;
@@ -561,18 +561,33 @@ details p{margin-top:.7rem;max-width:44rem}
         window.open(`https://wa.me/${numeroWhatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
     });
 
-    // 7. CARGAR INVENTARIO DESDE GOOGLE SHEETS
+    // 7. CONFIGURAR BOTÓN SUPERIOR PARA INICIO DE CONVERSACIÓN GENERAL
+    function configurarBotonSuperior() {
+        // Busca los botones de WhatsApp de la parte superior o de la portada
+        const botonesSuperiores = document.querySelectorAll('a[href*="WhatsApp"], button.btn-main, a.btn-main');
+        botonesSuperiores.forEach(btn => {
+            // Evitamos tocar el botón flotante del carrito
+            if(btn.id === 'btn-wa-flotante') return;
+            
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                let msgGeneral = "¡Hola! Estoy interesado en el hilo dental infantil Zoolo y me gustaría recibir más información.";
+                window.open(`https://wa.me/${numeroWhatsapp}?text=${encodeURIComponent(msgGeneral)}`, '_blank');
+            });
+        });
+    }
+
+    // 8. CARGAR INVENTARIO DESDE GOOGLE SHEETS
     async function cargarInventario() {
         try {
             const respuesta = await fetch(urlCSV);
             const datosCsv = await respuesta.text();
             
-            const filas = datosCsv.split('\\n').slice(1);
+            const filas = datosCsv.split('\n').slice(1);
             filas.forEach(fila => {
                 const columnas = fila.split(',');
                 if (columnas.length >= 2) {
                     let saborRaw = columnas[0].trim().toLowerCase();
-                    // Limpieza para coincidir con nuestras variables internas
                     if(saborRaw.includes('sandia') || saborRaw.includes('sandía')) saborRaw = 'sandía';
                     if(saborRaw.includes('fresa')) saborRaw = 'fresa';
                     if(saborRaw.includes('durazno')) saborRaw = 'durazno';
@@ -584,13 +599,12 @@ details p{margin-top:.7rem;max-width:44rem}
             iniciarCarrito();
         } catch (error) {
             console.error("Error cargando inventario:", error);
-            // Fallback: Si falla Google Sheets, permite pedir sin límite para no perder la venta
-            inventario = { "fresa": 100, "durazno": 100, "sandía": 100 }; 
+            inventario = { "fresa": 50, "durazno": 50, "sandía": 50 }; 
             iniciarCarrito();
         }
     }
 
-    // 8. INYECTAR CARRITO EN TU DISEÑO
+    // 9. INYECTAR CARRITO EN LAS TARJETAS
     function iniciarCarrito() {
         const tarjetas = document.querySelectorAll('.flavor');
         tarjetas.forEach(tarjeta => {
@@ -617,15 +631,14 @@ details p{margin-top:.7rem;max-width:44rem}
             btnOriginal.replaceWith(controles);
         });
 
-        // Ocultar formulario antiguo
-        const seccionForm = document.getElementById('pedir');
-        if(seccionForm) seccionForm.style.display = 'none';
+        // Configurar el comportamiento independiente del botón superior
+        configurarBotonSuperior();
     }
 
-    // Iniciar el proceso al cargar la página
+    // Iniciar al cargar la página
     window.addEventListener('DOMContentLoaded', cargarInventario);
 })();
 </script>
 <!-- FIN DE LA ACTUALIZACIÓN ZOOLO CARRITO -->
-
+           
 </body></html>
